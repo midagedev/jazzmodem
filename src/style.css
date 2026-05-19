@@ -1,17 +1,19 @@
 :root {
-  --bg: #f6f7f4;
-  --surface: #ffffff;
-  --surface-2: #eef2f1;
-  --text: #17201f;
-  --muted: #66736f;
-  --line: #d8dfda;
-  --accent: #0e7c86;
-  --accent-strong: #075e66;
-  --accent-soft: #d8f0ef;
+  --bg: #f7f3ec;
+  --surface: #fffdf8;
+  --surface-2: #f0e8da;
+  --text: #1f211c;
+  --muted: #716b61;
+  --line: #ded2c1;
+  --accent: #0f6f68;
+  --accent-strong: #174b45;
+  --accent-soft: #dcefed;
+  --brass: #c08a2d;
+  --brick: #b94735;
   --danger: #b94735;
   --ok: #2e8b57;
   --warn: #b17410;
-  --shadow: 0 18px 50px rgba(31, 45, 43, 0.12);
+  --shadow: 0 18px 50px rgba(54, 45, 32, 0.13);
   --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -31,6 +33,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.92), rgba(247, 243, 236, 0.86)),
+    repeating-linear-gradient(90deg, rgba(31, 33, 28, 0.035) 0 1px, transparent 1px 92px);
 }
 
 button,
@@ -93,6 +98,13 @@ button.ghost {
   padding: 10px 0 24px;
 }
 
+.topbar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   color: var(--accent-strong);
@@ -100,6 +112,24 @@ button.ghost {
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.github-link {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 13px;
+  color: var(--accent-strong);
+  background: rgba(255, 253, 248, 0.78);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.github-link:hover {
+  border-color: var(--accent);
 }
 
 h1,
@@ -110,7 +140,7 @@ p {
 
 h1 {
   max-width: 760px;
-  font-size: clamp(2.35rem, 5vw, 5.6rem);
+  font-size: 4.8rem;
   line-height: 0.93;
   letter-spacing: 0;
 }
@@ -125,7 +155,7 @@ h2 {
   border-radius: 999px;
   padding: 9px 13px;
   color: var(--muted);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 253, 248, 0.78);
 }
 
 .workspace {
@@ -236,7 +266,7 @@ select {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
-  background: #f8faf8;
+  background: #fbf7ef;
 }
 
 .preview-grid {
@@ -281,7 +311,7 @@ select {
   width: 150px;
   height: 10px;
   border-radius: 999px;
-  background: #dbe3e0;
+  background: #e4dacb;
 }
 
 .vu-track i {
@@ -289,7 +319,7 @@ select {
   width: 0%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #4f9a73, #d3a12f, #b94735);
+  background: linear-gradient(90deg, var(--accent), var(--brass), var(--brick));
   transition: width 80ms linear;
 }
 
@@ -303,7 +333,7 @@ select {
   border-radius: 7px;
   padding: 10px;
   background:
-    linear-gradient(to top, rgba(14, 124, 134, 0.12), transparent),
+    linear-gradient(to top, rgba(15, 111, 104, 0.12), transparent),
     var(--surface);
 }
 
@@ -312,7 +342,7 @@ select {
   align-items: end;
   height: 100%;
   border-radius: 999px;
-  background: #e5ece8;
+  background: #e9dfd0;
 }
 
 .eq-bar i {
@@ -442,6 +472,43 @@ summary {
   background: var(--danger);
 }
 
+.mobile-access {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(255, 253, 248, 0.78);
+}
+
+.mobile-access p {
+  margin-top: 5px;
+  color: var(--muted);
+}
+
+.qr-card {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: var(--accent-strong);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.qr-card img {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  background: #ffffff;
+}
+
 @media (max-width: 860px) {
   .shell {
     width: min(100% - 20px, 680px);
@@ -451,6 +518,15 @@ summary {
   .topbar {
     align-items: start;
     flex-direction: column;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    font-size: 3.2rem;
   }
 
   .workspace {
@@ -471,5 +547,26 @@ summary {
 
   .telemetry div:last-child {
     grid-column: span 2;
+  }
+
+  .mobile-access {
+    align-items: start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  h1 {
+    font-size: 2.45rem;
+  }
+
+  .status-pill,
+  .github-link {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .qr-card {
+    width: 100%;
   }
 }

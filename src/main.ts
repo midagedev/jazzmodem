@@ -1,5 +1,6 @@
 import './style.css'
 import {
+  type 부분프레임결과,
   type 청크상태,
   type 헤더오류키,
   바이트를음악기호로,
@@ -7,10 +8,12 @@ import {
   음악기호찾기,
   오디오표본만들기,
   코드톤수,
+  기호비트수,
   괴르첼,
   끝표식초,
   청크반복,
   청크크기,
+  부분프레임읽기,
   프레임복구하기,
   프레임만들기,
   프리앰블주파수,
@@ -21,9 +24,9 @@ import {
   기호구간시간초구하기,
   기호시간초구하기,
   기호위치찾기,
-  압축하기,
   압축풀기,
   헤더읽기,
+  전송본문만들기,
   의사잡음,
 } from './음악모뎀'
 
@@ -57,17 +60,18 @@ const 현재언어: 언어 = navigator.language.toLowerCase().startsWith('ko') ?
 
 const 글 = {
   ko: {
-    제목: '재즈 피아노로 텍스트 붙여넣기.',
-    상태: '네트워크 없음. 메모리만 사용.',
+    제목: '텍스트를 재즈 모뎀으로 연주하기.',
+    상태: '정적 페이지. 네트워크 없음.',
+    깃허브: 'GitHub',
     텍스트: '텍스트',
     복사: '복사',
     자리표시자: 'URL, 코드 조각, 에러 로그, 한글/영문 텍스트를 붙여넣으세요.',
     길이경고: '8KB가 넘으면 전송 시간이 길어지고 실패 확률이 높아집니다.',
     모드: '모드',
     균형: '재즈',
-    모드설명: 'MVP는 재즈 블루스 코드 진행 위에 음정 2비트 + 리듬 2비트를 싣고, CRC 청크 복구를 사용합니다.',
+    모드설명: '138BPM 스윙 8분 그리드 위에 보이싱 3비트 + 길이 2비트 + 당김 1비트를 싣고, 깨진 청크는 CRC로 검출합니다.',
     볼륨: '출력 볼륨',
-    소리정체성: '소리 정체성',
+    소리정체성: '모뎀 보이싱',
     보내기: '보내기',
     멈춤: '멈춤',
     듣기: '듣기',
@@ -76,11 +80,11 @@ const 글 = {
     청크: '청크',
     프리앰블: '프리앰블',
     압축: '압축',
-    복구: '복구',
-    청크값: '64B × 3 + CRC16',
-    프리앰블값: '1.0초 투톤 동기화',
-    압축값: '브라우저 내장 Deflate',
-    복구값: 'CRC가 맞는 반복 청크 채택',
+    복구: '검증',
+    청크값: '64B × 1 + CRC16',
+    프리앰블값: '1.0초 투톤 카운트인',
+    압축값: '스트리밍 UTF-8 청크',
+    복구값: 'CRC-16으로 깨진 청크 검출',
     단계: '단계',
     심볼: '음표',
     청크들: '청크',
@@ -106,30 +110,35 @@ const 글 = {
     메타압축: '압축',
     메타원문: '원문',
     메타압축없음: '무압축',
+    메타수신중: '수신 중',
     청크없음: '아직 청크 없음',
-    전송미리보기: '전송 미리보기',
+    전송미리보기: '세션 미리보기',
     원문크기: '텍스트 크기',
     본문크기: '전송 본문',
     프레임크기: '실제 프레임',
     예상전송시간: '예상 전송 시간',
-    복구반복: '복구 반복',
-    소리시각화: '소리 시각화',
+    복구반복: '청크 반복',
+    소리시각화: '레벨과 톤',
     출력레벨: '출력 레벨',
-    톤분포: '코드 톤',
+    톤분포: '보이싱',
+    모바일접근: '폰으로 열기',
+    모바일설명: 'QR을 스캔하면 같은 페이지가 열립니다.',
+    큐알대체: 'Jazzmodem 웹페이지 QR 코드',
     없음: '없음',
   },
   en: {
-    제목: 'Paste text through jazz piano.',
-    상태: 'No network. Memory only.',
+    제목: 'Play text through a jazz modem.',
+    상태: 'Static page. No network.',
+    깃허브: 'GitHub',
     텍스트: 'Text',
     복사: 'Copy',
     자리표시자: 'Paste a URL, source snippet, error log, or Korean/English text here.',
     길이경고: 'Over 8KB takes longer and is more likely to fail.',
     모드: 'Mode',
     균형: 'Jazz',
-    모드설명: 'MVP carries 2 pitch bits + 2 rhythm bits over a jazz-blues progression with CRC chunk recovery.',
+    모드설명: 'Voicing, duration, and pushed timing ride on a 138 BPM swing-eighth grid; CRC detects broken chunks.',
     볼륨: 'Output volume',
-    소리정체성: 'Sound identity',
+    소리정체성: 'Modem voicing',
     보내기: 'Send',
     멈춤: 'Stop',
     듣기: 'Listen',
@@ -138,11 +147,11 @@ const 글 = {
     청크: 'Chunk',
     프리앰블: 'Preamble',
     압축: 'Compression',
-    복구: 'Recovery',
-    청크값: '64 B × 3 + CRC16',
-    프리앰블값: '1.0 s two-tone sync',
-    압축값: 'Native browser Deflate',
-    복구값: 'valid repeated chunks win',
+    복구: 'Check',
+    청크값: '64 B × 1 + CRC16',
+    프리앰블값: '1.0 s two-tone count-in',
+    압축값: 'Streaming UTF-8 chunks',
+    복구값: 'CRC-16 detects broken chunks',
     단계: 'Phase',
     심볼: 'Notes',
     청크들: 'Chunks',
@@ -168,16 +177,20 @@ const 글 = {
     메타압축: 'compressed',
     메타원문: 'raw',
     메타압축없음: 'stored',
+    메타수신중: 'receiving',
     청크없음: 'No chunks yet',
-    전송미리보기: 'Transfer preview',
+    전송미리보기: 'Session preview',
     원문크기: 'Text size',
     본문크기: 'Payload',
     프레임크기: 'On-air frame',
     예상전송시간: 'Estimated send time',
-    복구반복: 'Recovery repeats',
-    소리시각화: 'Sound view',
+    복구반복: 'Chunk repeat',
+    소리시각화: 'Level & tone',
     출력레벨: 'Output level',
-    톤분포: 'Chord tones',
+    톤분포: 'Voicing',
+    모바일접근: 'Open on mobile',
+    모바일설명: 'Scan the QR code to open this page on another device.',
+    큐알대체: 'QR code for the Jazzmodem web page',
     없음: 'None',
   },
 } as const
@@ -189,8 +202,8 @@ const 소리정체성목록: Record<
   재즈피아노: {
     이름: { ko: '블루 재즈 피아노', en: 'Blue Jazz Piano' },
     설명: {
-      ko: '12마디 재즈 블루스와 ii-V 턴어라운드 위에서 음정과 스윙 리듬이 함께 데이터를 나릅니다.',
-      en: 'Data rides on pitch and swing rhythm over a 12-bar jazz blues with ii-V turnaround.',
+      ko: '12마디 블루스와 ii-V 턴어라운드 위에서 랙타임처럼 당겨 치는 낮은 피아노 보이싱이 데이터를 나릅니다.',
+      en: 'Low piano voicings carry data with ragtime-like pushes over a 12-bar blues with ii-V turnaround.',
     },
   },
 }
@@ -208,7 +221,10 @@ if (!뿌리) {
         <p class="eyebrow">${현재언어 === 'ko' ? '재즈모뎀' : 'Jazzmodem'}</p>
         <h1>${문구('제목')}</h1>
       </div>
-      <div class="status-pill">${문구('상태')}</div>
+      <div class="topbar-actions">
+        <a class="github-link" href="https://github.com/midagedev/jazzmodem" target="_blank" rel="noreferrer">${문구('깃허브')}</a>
+        <div class="status-pill">${문구('상태')}</div>
+      </div>
     </header>
 
     <section class="workspace">
@@ -329,6 +345,17 @@ if (!뿌리) {
     </section>
 
     <section class="chunk-strip" id="chunkStrip" aria-label="${문구('청크들')}"></section>
+
+    <section class="mobile-access">
+      <div>
+        <h2>${문구('모바일접근')}</h2>
+        <p>${문구('모바일설명')}</p>
+      </div>
+      <a class="qr-card" href="https://jazzmodem.midagedev.com" target="_blank" rel="noreferrer">
+        <img src="/qr-jazzmodem.svg" alt="${문구('큐알대체')}" width="148" height="148" />
+        <span>jazzmodem.midagedev.com</span>
+      </a>
+    </section>
   </main>
 `
 
@@ -367,6 +394,9 @@ let 예상청크수 = 0
 let 예상반복수 = 청크반복
 let 받은바이트: number[] = []
 let 받은기호수 = 0
+let 수신해독기 = new TextDecoder()
+let 수신표시청크수 = 0
+let 수신표시텍스트 = ''
 let 메타순번 = 0
 
 텍스트상자.addEventListener('input', () => {
@@ -437,14 +467,14 @@ function 현재소리정체성(): 소리정체성 {
 async function 메타갱신하기(): Promise<void> {
   const 현재순번 = ++메타순번
   const 원문 = new TextEncoder().encode(텍스트상자.value)
-  const 압축된값 = 원문.length ? await 압축하기(원문) : { 바이트: new Uint8Array(), 압축됨: false }
+  const 압축된값 = 원문.length ? 전송본문만들기(원문) : { 바이트: new Uint8Array(), 압축됨: false }
   if (현재순번 !== 메타순번) return
   const 압축표시 = 압축된값.압축됨 ? 문구('메타압축') : 문구('메타압축없음')
   const 청크수 = 압축된값.바이트.length ? Math.ceil(압축된값.바이트.length / 청크크기) : 0
   const 프레임바이트수 = 압축된값.바이트.length
     ? 16 + 반복청크바이트수구하기(압축된값.바이트.length, 청크수, 청크반복)
     : 0
-  const 기호수 = 프레임바이트수 * 2
+  const 기호수 = Math.ceil((프레임바이트수 * 8) / 기호비트수)
   const 예상초 = 프레임바이트수 ? 프리앰블초 + 끝표식초 + 기호시간초구하기(기호수) : 0
   본문메타.textContent = `${원문.length} B ${문구('메타원문')} · ${압축된값.바이트.length} B ${압축표시}`
   미리보기원문.textContent = 바이트표시하기(원문.length)
@@ -607,6 +637,9 @@ function 수신초기화하기(): void {
   예상반복수 = 청크반복
   받은바이트 = []
   받은기호수 = 0
+  수신해독기 = new TextDecoder()
+  수신표시청크수 = 0
+  수신표시텍스트 = ''
   청크띠그리기(0)
   기호값.textContent = '0 / 0'
   청크값.textContent = '0 / 0'
@@ -678,19 +711,54 @@ function 기호소비하기(): void {
     예상본문바이트 = 읽은헤더.본문길이
     예상청크수 = Math.ceil(읽은헤더.본문길이 / 청크크기)
     예상반복수 = 읽은헤더.반복수
+    수신표시초기화하기()
     청크띠그리기(예상청크수, '대기')
   }
 
   if (예상본문바이트 === null) return
-  const 전체프레임바이트 = 16 + 반복청크바이트수구하기(예상본문바이트, 예상청크수, 예상반복수)
-  const 전체기호수 = 전체프레임바이트 * 2
+  const 부분프레임 = 부분프레임읽기(바이트들, 헤더문구찾기)
+  const 전체프레임바이트 = 부분프레임.전체프레임바이트 || 16 + 반복청크바이트수구하기(예상본문바이트, 예상청크수, 예상반복수)
+  const 전체기호수 = Math.ceil((전체프레임바이트 * 8) / 기호비트수)
   기호값.textContent = `${받은기호수} / ${전체기호수}`
   남은시간값.textContent = `${Math.max(0, Math.ceil(기호구간시간초구하기(받은기호수, 전체기호수)))}s`
+  청크띠그리기(부분프레임.전체청크수, '대기', 부분프레임.청크상태들)
+  청크값.textContent = `${부분프레임.성공청크수} / ${부분프레임.전체청크수}`
+  수신텍스트반영하기(부분프레임)
 
-  if (바이트들.length < 전체프레임바이트) return
+  if (!부분프레임.완료됨) return
 
   받은바이트 = 바이트들.slice(0, 전체프레임바이트)
   void 수신완료하기()
+}
+
+function 수신표시초기화하기(): void {
+  수신해독기 = new TextDecoder()
+  수신표시청크수 = 0
+  수신표시텍스트 = ''
+  텍스트상자.value = ''
+  본문메타.textContent = `0 B ${문구('메타수신중')}`
+  복사단추.disabled = true
+}
+
+function 수신텍스트반영하기(부분프레임: 부분프레임결과): void {
+  if (!부분프레임.헤더 || 부분프레임.헤더.압축됨) return
+
+  while (수신표시청크수 < 부분프레임.청크들.length) {
+    const 청크 = 부분프레임.청크들[수신표시청크수]
+    if (!청크) break
+    const 마지막청크 = 부분프레임.완료됨 && 수신표시청크수 === 부분프레임.청크들.length - 1
+    수신표시텍스트 += 수신해독기.decode(new Uint8Array(청크), { stream: !마지막청크 })
+    수신표시청크수 += 1
+  }
+
+  if (부분프레임.완료됨) {
+    수신표시텍스트 += 수신해독기.decode()
+  }
+
+  텍스트상자.value = 수신표시텍스트
+  텍스트상자.scrollTop = 텍스트상자.scrollHeight
+  본문메타.textContent = `${new TextEncoder().encode(수신표시텍스트).length} / ${부분프레임.헤더.본문길이} B ${문구('메타수신중')}`
+  복사단추.disabled = !수신표시텍스트
 }
 
 async function 수신완료하기(): Promise<void> {
@@ -773,17 +841,18 @@ function 화면그리기기다리기(): Promise<void> {
 
 function 시각화그리기(기호: number | null, 시간초: number): void {
   const 볼륨 = Number(볼륨슬라이더.value) / 100
-  const 피치번호 = 기호 === null ? null : (기호 >> 2) & 0b11
-  const 리듬번호 = 기호 === null ? 0 : 기호 & 0b11
-  const 움직임 = 기호 === null ? 0 : 0.62 + 리듬번호 * 0.08 + 0.14 * Math.sin(시간초 * Math.PI * 8)
+  const 보이싱번호 = 기호 === null ? null : 기호 & 0b111
+  const 길이번호 = 기호 === null ? 0 : (기호 >> 3) & 0b11
+  const 당김번호 = 기호 === null ? 0 : (기호 >> 5) & 0b1
+  const 움직임 = 기호 === null ? 0 : 0.58 + 길이번호 * 0.07 + 당김번호 * 0.08 + 0.1 * Math.sin(시간초 * Math.PI * 8)
   출력레벨막대.style.width = `${Math.max(0, Math.min(100, 볼륨 * 움직임 * 100))}%`
 
   이큐막대들.forEach((막대, 순서) => {
-    const 가까움 = 피치번호 === null ? 0 : 순서 === 피치번호 ? 1 : 0.16
-    const 바닥 = 피치번호 === null ? 7 : 14 + 의사잡음(순서, Math.floor(시간초 * 16)) * 6
+    const 가까움 = 보이싱번호 === null ? 0 : 순서 === 보이싱번호 ? 1 : 0.16
+    const 바닥 = 보이싱번호 === null ? 7 : 14 + 의사잡음(순서, Math.floor(시간초 * 16)) * 6
     const 높이 = Math.max(6, Math.min(100, 바닥 + 가까움 * 78 * 볼륨))
     막대.style.height = `${높이}%`
-    막대.style.opacity = 피치번호 === null ? '0.45' : 가까움 > 0.6 ? '1' : '0.58'
+    막대.style.opacity = 보이싱번호 === null ? '0.45' : 가까움 > 0.6 ? '1' : '0.58'
   })
 }
 
